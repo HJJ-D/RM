@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Data files (large files - keep local only)
+*.tif
+*.tiff
+REF_raw_data101_110/
+RIF10_raw_data201_210/
+REF_masks101_110/Pos*/PreprocessedPhase/
+RIF10_masks201_210/Pos*/PreprocessedPhase/
+REF_masks101_110/Pos*/PreprocessedPhaseMasks/*.tif
+RIF10_masks201_210/Pos*/PreprocessedPhaseMasks/*.tif
+
+# Keep pickle files (small, useful)
+# !*.pickle
+
+# Output files (can be regenerated)
+divergence_analysis.png
+divergence_results.pkl
+divergence_report.txt
+*.svg
+
+# OS
+.DS_Store
+Thumbs.db
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+check_pickle.py
+
+# Large data folders
+*_raw_data*/
+
+# Notebook outputs (optional - remove if you want to keep outputs)
+# *.ipynb
+
+# Environment
+.env

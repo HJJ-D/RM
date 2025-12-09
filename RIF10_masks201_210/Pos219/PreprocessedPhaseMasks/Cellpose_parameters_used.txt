@@ -1,0 +1,6 @@
+CELLPOSE PARAMETERS
+Model: Bacteria_Omnipose
+Omni Flag: True
+Diameter: 40
+Flow Threshold: 0.8
+Cell probability Threshold: 0
