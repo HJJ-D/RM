@@ -11,7 +11,7 @@ Based on Lecture 3 requirements:
 
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')  # 使用非交互式后端，避免Qt冲突
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
 from pathlib import Path
 from scipy import stats
