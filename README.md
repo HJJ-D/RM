@@ -130,6 +130,54 @@ Creates comprehensive 3-panel figure:
    - Divergence point marked with vertical line
    - α = 0.05 threshold shown
 
+## ⚠️ Limitations and Considerations
+
+### Detection Method and Heteroresistance
+
+**Our approach:**
+- Divergence metric based on **comparing mean growth rates** between treated and untreated populations
+- Captures the **average drug effect** across all bacterial cells
+- Uses independent t-test with p<0.05 threshold for statistical significance
+
+**Important considerations for heterogeneous populations:**
+
+In wild-type laboratory strains (*M. smegmatis* NCTC 8159 used in this experiment), **resistant bacteria are expected to be rare (<5%)** as these populations have not been exposed to selection pressure. The current methodology is well-suited for detecting the primary antibiotic effect in such populations.
+
+However, in **heteroresistant populations** (where resistance frequency is higher), the detection may be affected:
+
+| Resistance Level | Expected in Lab Strains | Detection Capability | Time Accuracy |
+|-----------------|------------------------|---------------------|---------------|
+| **Rare (<5%)** | ✓ **Typical for WT** | ✓✓✓ Reliable | ✓✓ Accurate |
+| **Low (5-10%)** | Possible | ✓✓✓ Reliable | ✓✓ Accurate |
+| **Moderate (10-30%)** | Unlikely in WT | ✓✓ Likely detected | ✓ May be delayed |
+| **High (30-50%)** | Clinical isolates only | ✓ Difficult | ⚠️ Significantly delayed |
+| **Very High (>50%)** | Resistant strains | ✗ May not detect | ✗ Unreliable |
+
+**Why heteroresistance matters:**
+- **Small resistant subpopulation**: As sensitive cells die, resistant cells continue growing
+- **Compensatory growth**: Resistant cells partially offset the decline in total bacterial mass
+- **Mean growth rate**: Remains closer to untreated levels, delaying p<0.05 detection
+- **Hotspot requirement**: Detecting rare resistant clones (<5%) would require **single-cell or microchamber-level analysis**, which is beyond the scope of this population-level approach
+
+**Robustness features in this implementation:**
+- ✅ **Multiple replicates** (10 positions each) - averages out variation
+- ✅ **Conservative threshold** (p<0.05) - standard statistical significance
+- ✅ **Consecutive frames** (3 frames) - reduces false positives from noise
+- ✅ **Population-level metric** - appropriate for detecting primary antibiotic effect in wild-type strains
+- ✅ **Biological validity** - if no detection, may indicate genuinely weak drug effect or high pre-existing resistance
+
+**Scope of current project:**
+- ✓ Detects when **average population growth** diverges between treated and untreated
+- ✓ Suitable for **wild-type laboratory strains** with rare spontaneous resistance
+- ✗ Not designed for **rare resistant clone detection** (requires microchamber hotspot analysis)
+- ✗ Not optimized for **clinical heteroresistant isolates** (would need single-cell tracking)
+
+**If divergence is not detected:**
+1. Most likely: RIF effect is genuinely weak or delayed in this strain
+2. Possible: Pre-existing resistant subpopulation is larger than expected
+3. Consider: Population may require longer observation period
+4. Alternative: Try adjusting parameters for higher sensitivity (see Customization)
+
 ## 🛠️ Customization
 
 Edit these parameters in `detect_divergence.py`:
@@ -145,8 +193,21 @@ analyzer = GrowthAnalyzer(
 divergence_frame, p_values = analyzer.detect_divergence_ttest(
     rif_growth_rates, 
     ref_growth_rates,
-    alpha=0.05,           # Significance level
-    min_consecutive=3     # Consecutive significant points
+    alpha=0.05,           # Significance level (lower = more stringent)
+    min_consecutive=3     # Consecutive significant points (higher = more conservative)
 )
+```
+
+**Parameter tuning for different scenarios:**
+
+```python
+# More sensitive (detect earlier/weaker effects)
+alpha=0.10, min_consecutive=2
+
+# Standard (default, recommended)
+alpha=0.05, min_consecutive=3
+
+# More stringent (high confidence, may miss weak effects)
+alpha=0.01, min_consecutive=5
 ```
 
