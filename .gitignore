@@ -34,24 +34,25 @@ wheels/
 *.swo
 *~
 
-# Data files (large files - keep local only)
+# Data files (DO NOT UPLOAD - too large)
 *.tif
 *.tiff
+*.pickle
+REF_masks101_110/
+RIF10_masks201_210/
 REF_raw_data101_110/
 RIF10_raw_data201_210/
-REF_masks101_110/Pos*/PreprocessedPhase/
-RIF10_masks201_210/Pos*/PreprocessedPhase/
-REF_masks101_110/Pos*/PreprocessedPhaseMasks/*.tif
-RIF10_masks201_210/Pos*/PreprocessedPhaseMasks/*.tif
-
-# Keep pickle files (small, useful)
-# !*.pickle
+*_raw_data*/
+*_masks*/
 
 # Output files (can be regenerated)
-divergence_analysis.png
 divergence_results.pkl
 divergence_report.txt
 *.svg
+
+# Keep example output for README
+!example_output/
+!example_output/*.png
 
 # OS
 .DS_Store
@@ -63,11 +64,8 @@ Thumbs.db
 *.bak
 check_pickle.py
 
-# Large data folders
-*_raw_data*/
-
-# Notebook outputs (optional - remove if you want to keep outputs)
-# *.ipynb
+# Teacher's notebook (not relevant for submission)
+EXP-23-BZ3167.ipynb
 
 # Environment
 .env
