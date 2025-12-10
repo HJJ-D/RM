@@ -64,8 +64,5 @@ Thumbs.db
 *.bak
 check_pickle.py
 
-# Teacher's notebook (not relevant for submission)
-EXP-23-BZ3167.ipynb
-
 # Environment
 .env
