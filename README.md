@@ -11,6 +11,20 @@ This project provides a pipeline for **single-cell tracking** and **growth rate 
 
 ---
 
+## Results Preview
+
+### Growth Rate Analysis
+
+![Growth Analysis Results](growth_analysis_results.png)
+
+**Figure description:**
+- **Top-left**: Growth rate over time for Control (blue) and Treatment (red), with shaded 25-75% quantile bands
+- **Top-right**: Normalized treatment response (Treatment / Control ratio), dashed line indicates detected drug response time
+- **Bottom-left**: Boxplot comparison of overall growth rates between groups
+- **Bottom-right**: Track statistics showing number of tracks and average duration per condition
+
+---
+
 ## Requirements
 
 ### Python Environment
