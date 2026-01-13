@@ -1,213 +1,271 @@
-# Bacterial Growth Divergence Detection
+# Cell Tracking and Growth Rate Analysis
 
-**Course:** Lecture 3 - Antibiotic Effect Detection  
-**Organism:** *M. smegmatis* NCTC 8159  
-**Task:** Detect when RIF-treated bacteria diverge from untreated controls (p < 0.05)
+This project provides a pipeline for **single-cell tracking** and **growth rate analysis** from time-lapse microscopy data. It compares cell growth between control (REF) and treatment (RIF) conditions.
+
+## Features
+
+- **Hungarian matching-based cell tracking**: Frame-wise global assignment using IoU overlap and centroid distance
+- **Growth rate computation**: Local slope estimation from cell elongation (major axis length)
+- **Statistical comparison**: Control vs Treatment with t-test, Mann-Whitney U, and effect size (Cohen's d)
+- **Visualization**: Tracking overlays, growth curves, boxplots, and timeline plots
 
 ---
 
-## 📋 Overview
+## Requirements
 
-This code detects the **earliest time point** where rifampicin (RIF) treatment causes bacterial growth to significantly diverge from untreated controls, based on:
+### Python Environment
 
-- Total bacterial area from Omnipose segmentation masks
-- Growth rate calculated with 30-minute sliding window
-- Statistical significance testing (independent t-test, α = 0.05)
-
-## 🗂️ Data Structure
-
-The code expects the following folder structure:
-
-```
-F:/RM/
-├── REF_masks101_110/          # Untreated control
-│   ├── Pos101/
-│   │   └── PreprocessedPhaseMasks/
-│   │       ├── growth_areas.pickle      # Pre-calculated areas (preferred)
-│   │       ├── MASK_img_000000000.tif   # Segmentation masks (fallback)
-│   │       ├── MASK_img_000000001.tif
-│   │       └── ...
-│   ├── Pos102/ ... Pos110/
-│
-├── RIF10_masks201_210/        # RIF-treated
-│   ├── Pos201/
-│   │   └── PreprocessedPhaseMasks/
-│   │       ├── growth_areas.pickle      # Pre-calculated areas (preferred)
-│   │       ├── MASK_img_000000000.tif   # Segmentation masks (fallback)
-│   │       └── ...
-│   ├── Pos202/ ... Pos210/
-│
-└── detect_divergence.py       # Analysis script
-```
-
-**Note:** The code automatically uses `growth_areas.pickle` if available (faster), otherwise calculates from `.tif` masks.
-
-
-## 🚀 Quick Start
-
-### Requirements
+Python 3.8+ with the following packages:
 
 ```bash
-pip install numpy scipy matplotlib imageio
+pip install numpy scipy scikit-image matplotlib tifffile
 ```
 
-Or use conda:
+Or create a conda environment:
+
 ```bash
-conda install numpy scipy matplotlib imageio
+conda create -n cell_tracking python=3.10
+conda activate cell_tracking
+pip install numpy scipy scikit-image matplotlib tifffile
 ```
 
-### Running the Analysis
+---
 
-1. **Ensure data is in the correct location** (`F:/RM/` or modify paths in script)
+## Data Structure
 
-2. **Run the script:**
-   ```bash
-   python detect_divergence.py
-   ```
-
-3. **Check outputs:**
-   - `divergence_analysis.png` - Visualization of results
-   - `divergence_results.pkl` - Full data for further analysis
-   - `divergence_report.txt` - Summary report
-
-**Note:** The script uses non-interactive matplotlib backend (Agg) to avoid Qt conflicts. Figures are saved directly without display.
-
-## 📊 Output Example
+The project expects the following directory structure. **This is critical for reproducibility.**
 
 ```
-======================================================================
-BACTERIAL GROWTH DIVERGENCE ANALYSIS REPORT
-======================================================================
-
-DATASET:
-  - Control (REF): 10 replicates (Pos101-110)
-  - Treated (RIF10): 10 replicates (Pos201-210)
-  - Imaging interval: 2 minutes
-
-METHODOLOGY:
-  - Sliding window: 30 minutes (15 frames)
-  - Growth rate: Exponential fit (log-linear)
-  - Statistical test: Independent t-test
-  - Significance level: α = 0.05
-  - Minimum consecutive significant points: 3
-
-RESULTS:
-  ✓ DIVERGENCE DETECTED
-  - Frame: 45
-  - Time: 90.0 minutes
-  - Time: 1.50 hours
-  - P-value at divergence: 0.032145
-
-======================================================================
+project_root/
+│
+├── data/
+│   ├── REF/                          # Control group
+│   │   ├── 1/
+│   │   │   └── HR_REF_masks/
+│   │   │       ├── Pos101/
+│   │   │       │   └── PreprocessedPhaseMasks/
+│   │   │       │       ├── MASK_img_000000000.tif
+│   │   │       │       ├── MASK_img_000000001.tif
+│   │   │       │       ├── ...
+│   │   │       │       └── MASK_img_000000120.tif
+│   │   │       ├── Pos102/
+│   │   │       │   └── PreprocessedPhaseMasks/
+│   │   │       │       └── MASK_img_*.tif
+│   │   │       ├── Pos103/
+│   │   │       ├── ...
+│   │   │       └── Pos110/
+│   │   │
+│   │   └── 2/
+│   │       └── REF_masks101_110/
+│   │           ├── Pos101/
+│   │           │   └── MASK_img_*.tif    # Masks directly in position folder
+│   │           ├── ...
+│   │           └── Pos110/
+│   │
+│   └── RIF/                          # Treatment group
+│       ├── 1/
+│       │   └── HR_RIF10_masks/
+│       │       ├── Pos201/
+│       │       │   └── PreprocessedPhaseMasks/
+│       │       │       └── MASK_img_*.tif
+│       │       ├── Pos202/
+│       │       ├── ...
+│       │       └── Pos210/
+│       │
+│       ├── 2/
+│       │   └── RIF10_masks201_210/
+│       │       ├── Pos201/
+│       │       ├── ...
+│       │       └── Pos220/
+│       │
+│       └── 3/
+│           └── RIF10_masks211_217_for_testing/
+│               ├── Pos211/
+│               ├── ...
+│               └── Pos217/
+│
+├── tracking.py                    # Core tracking algorithm
+├── growth_analysis.py             # Growth rate computation
+├── run_tracking.py                # Run tracking on all positions
+├── run_complete_analysis.py       # Complete pipeline with visualization
+├── growth_rate_statistics.py      # Statistical summary and LaTeX table
+├── visualize_tracks.py            # Tracking visualization tool
+└── README.md
 ```
 
-## 🔬 Methodology
+### Mask File Format
 
-### 1. Data Loading
-- **Primary method**: Loads pre-calculated areas from `growth_areas.pickle` (faster, consistent with instructor's pipeline)
-- **Fallback method**: Calculates from segmentation masks if pickle not found
-- Supports multiple replicates (positions) for statistical robustness
+- **File naming**: `MASK_img_XXXXXXXXX.tif` (9-digit zero-padded frame number)
+- **Image format**: 16-bit or 8-bit TIFF, instance segmentation mask
+  - `0` = background
+  - `1, 2, 3, ...` = individual cell instances
+- **Frame count**: Typically 121 frames (0-120)
 
-### 2. Growth Rate Calculation
-Uses **exponential growth model** with sliding window:
-- Window size: 30 minutes (15 frames at 2-min intervals)
-- Fits exponential: `A(t) = A₀ · e^(b·t)` 
-- Log-linear transformation: `log(A) = log(A₀) + b·t`
-- Growth rate `b` is the slope in log-space (standard microbiology method)
-- Each window yields one growth rate value
+---
 
-### 3. Divergence Detection
-- Performs **independent t-test** at each timepoint
-- Compares treated vs control growth rates across all replicates
-- Finds **first timepoint** where p < 0.05 for **3 consecutive frames**
-- Conservative approach ensures robust detection (avoids false positives from noise)
+## How to Run (Step by Step)
 
-### 4. Visualization
-Creates comprehensive 3-panel figure:
-1. **Total Area**: Raw bacterial area over time (all replicates + mean)
-2. **Growth Rate**: Exponential growth rates for both conditions
-3. **P-values**: Statistical significance over time (log scale)
-   - Divergence point marked with vertical line
-   - α = 0.05 threshold shown
+### Step 1: Run Cell Tracking
 
-## ⚠️ Limitations and Considerations
+Track cells across all positions in both REF and RIF groups:
 
-### Detection Method and Heteroresistance
+```bash
+python run_tracking.py
+```
 
-**Our approach:**
-- Divergence metric based on **comparing mean growth rates** between treated and untreated populations
-- Captures the **average drug effect** across all bacterial cells
-- Uses independent t-test with p<0.05 threshold for statistical significance
+**Output files:**
+- `tracking_results_REF.pickle` - Tracking results for control group
+- `tracking_results_RIF.pickle` - Tracking results for treatment group
 
-**Important considerations for heterogeneous populations:**
+**What it does:**
+- Loads mask images from each position
+- Runs Hungarian matching-based tracking
+- Saves track data (frames, cell properties) for each position
 
-In wild-type laboratory strains (*M. smegmatis* NCTC 8159 used in this experiment), **resistant bacteria are expected to be rare (<5%)** as these populations have not been exposed to selection pressure. The current methodology is well-suited for detecting the primary antibiotic effect in such populations.
+---
 
-However, in **heteroresistant populations** (where resistance frequency is higher), the detection may be affected:
+### Step 2: Run Complete Analysis
 
-| Resistance Level | Expected in Lab Strains | Detection Capability | Time Accuracy |
-|-----------------|------------------------|---------------------|---------------|
-| **Rare (<5%)** | ✓ **Typical for WT** | ✓✓✓ Reliable | ✓✓ Accurate |
-| **Low (5-10%)** | Possible | ✓✓✓ Reliable | ✓✓ Accurate |
-| **Moderate (10-30%)** | Unlikely in WT | ✓✓ Likely detected | ✓ May be delayed |
-| **High (30-50%)** | Clinical isolates only | ✓ Difficult | ⚠️ Significantly delayed |
-| **Very High (>50%)** | Resistant strains | ✗ May not detect | ✗ Unreliable |
+Compute growth rates and generate visualization figures:
 
-**Why heteroresistance matters:**
-- **Small resistant subpopulation**: As sensitive cells die, resistant cells continue growing
-- **Compensatory growth**: Resistant cells partially offset the decline in total bacterial mass
-- **Mean growth rate**: Remains closer to untreated levels, delaying p<0.05 detection
-- **Hotspot requirement**: Detecting rare resistant clones (<5%) would require **single-cell or microchamber-level analysis**, which is beyond the scope of this population-level approach
+```bash
+python run_complete_analysis.py
+```
 
-**Robustness features in this implementation:**
-- ✅ **Multiple replicates** (10 positions each) - averages out variation
-- ✅ **Conservative threshold** (p<0.05) - standard statistical significance
-- ✅ **Consecutive frames** (3 frames) - reduces false positives from noise
-- ✅ **Population-level metric** - appropriate for detecting primary antibiotic effect in wild-type strains
-- ✅ **Biological validity** - if no detection, may indicate genuinely weak drug effect or high pre-existing resistance
+**Output files:**
+- `growth_analysis_results.pickle` - Computed growth rates and statistics
+- `growth_analysis_results.png` - Combined 2x2 figure
+- `fig1_growth_rate_over_time.png` - Growth rate time series
+- `fig2_normalized_response.png` - Normalized treatment response
+- `fig3_boxplot_comparison.png` - Statistical comparison boxplot
+- `fig4_track_statistics.png` - Track count and duration statistics
 
-**Scope of current project:**
-- ✓ Detects when **average population growth** diverges between treated and untreated
-- ✓ Suitable for **wild-type laboratory strains** with rare spontaneous resistance
-- ✗ Not designed for **rare resistant clone detection** (requires microchamber hotspot analysis)
-- ✗ Not optimized for **clinical heteroresistant isolates** (would need single-cell tracking)
+---
 
-**If divergence is not detected:**
-1. Most likely: RIF effect is genuinely weak or delayed in this strain
-2. Possible: Pre-existing resistant subpopulation is larger than expected
-3. Consider: Population may require longer observation period
-4. Alternative: Try adjusting parameters for higher sensitivity (see Customization)
+### Step 3: Generate Statistical Summary (Optional)
 
-## 🛠️ Customization
+Generate detailed statistics and LaTeX-formatted table:
 
-Edit these parameters in `detect_divergence.py`:
+```bash
+python growth_rate_statistics.py
+```
+
+**Console output:**
+- Mean, median, standard deviation, quartiles for each group
+- t-test and Mann-Whitney U test results
+- Cohen's d effect size
+- LaTeX table for publication
+
+---
+
+### Step 4: Visualize Tracking Results (Optional)
+
+Visualize tracking on specific positions:
+
+```bash
+python visualize_tracks.py
+```
+
+**Output directory:** `track_visualization/`
+- Frame-by-frame tracking overlays
+- Track summary figures
+
+---
+
+## Tracking Parameters
+
+Key parameters in `run_tracking.py`:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `T_early` | 60 | Early phase duration (frames) |
+| `max_dist` | 25.0 | Maximum centroid distance (pixels) |
+| `min_iou` | 0.2 | Minimum IoU overlap threshold |
+| `w_iou` | 1.0 | IoU weight in cost matrix |
+| `w_dist` | 0.3 | Distance weight in cost matrix |
+| `w_shape` | 0.1 | Shape similarity weight |
+| `allow_gap` | False | Allow 1-frame gap closing |
+
+---
+
+## Output Data Format
+
+### Tracking Results (`tracking_results_*.pickle`)
 
 ```python
-# Timing parameters
-analyzer = GrowthAnalyzer(
-    time_interval=2,      # Minutes between frames
-    window_minutes=30     # Sliding window size
-)
-
-# Detection parameters
-divergence_frame, p_values = analyzer.detect_divergence_ttest(
-    rif_growth_rates, 
-    ref_growth_rates,
-    alpha=0.05,           # Significance level (lower = more stringent)
-    min_consecutive=3     # Consecutive significant points (higher = more conservative)
-)
+{
+    "Pos101": {
+        "tracks": [
+            {
+                "frames": [0, 1, 2, ...],     # Frame indices
+                "cells": [
+                    {
+                        "label": 1,
+                        "centroid": (row, col),
+                        "area": 1234,
+                        "major_axis_length": 56.7,
+                        "minor_axis_length": 23.4,
+                        "bbox": (r0, c0, r1, c1)
+                    },
+                    ...
+                ]
+            },
+            ...  # More tracks
+        ],
+        "diagnostics": {...}  # Tracking statistics
+    },
+    "Pos102": {...},
+    ...
+}
 ```
 
-**Parameter tuning for different scenarios:**
+### Growth Analysis Results (`growth_analysis_results.pickle`)
 
 ```python
-# More sensitive (detect earlier/weaker effects)
-alpha=0.10, min_consecutive=2
-
-# Standard (default, recommended)
-alpha=0.05, min_consecutive=3
-
-# More stringent (high confidence, may miss weak effects)
-alpha=0.01, min_consecutive=5
+{
+    "control": {
+        "times": np.ndarray,           # Time points
+        "growth_rates": np.ndarray,    # Median growth rate per time
+        "growth_lower": np.ndarray,    # 25th percentile
+        "growth_upper": np.ndarray,    # 75th percentile
+        "n_tracks": int                # Number of tracks
+    },
+    "treatment": {...},                # Same structure
+    "normalized_ratio": np.ndarray,    # Treatment / Control ratio
+    "response_start_frame": int        # Detected drug response time
+}
 ```
 
+---
+
+## Algorithm Overview
+
+### Cell Tracking (Hungarian Matching)
+
+1. **Extract instances** from each frame's mask image
+2. **Build cost matrix** between frames t and t+1:
+   - Cost = `w_iou * (1 - IoU) + w_dist * normalized_distance + w_shape * shape_diff`
+3. **Apply thresholds** to filter impossible matches
+4. **Solve assignment** using Hungarian algorithm (`scipy.optimize.linear_sum_assignment`)
+5. **Build tracks** by chaining matched cells across frames
+
+### Growth Rate Computation
+
+1. **Extract major axis length** from each tracked cell
+2. **Compute local growth rate** using sliding window linear regression
+3. **Aggregate across tracks** using median (robust to outliers)
+4. **Normalize** treatment by control to show relative response
+
+---
+
+## Citation
+
+If you use this code, please cite the relevant publications for:
+- Cellpose (for cell segmentation)
+- Your own work using this analysis pipeline
+
+---
+
+## License
+
+MIT License - Feel free to use and modify for your research.
